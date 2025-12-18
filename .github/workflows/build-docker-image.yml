@@ -2,14 +2,20 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - fixed-domain
+      - custom-config
     paths:
       - 'Dockerfile'
       - 'index.js'
       - 'package.json'
   pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+    branches:
+      - main
+      - fixed-domain
+      - custom-config
+  workflow_dispatch:  # 支持手动触发
 
 jobs:
   build:
@@ -32,6 +38,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Generate metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/zxy
+          tags: |
+            type=raw,value=8880
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -40,9 +56,11 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ github.repository_owner }}/zxy:8880
+            ghcr.io/${{ github.repository_owner }}/zxy:${{ github.ref_name }}
+            ghcr.io/${{ github.repository_owner }}/zxy:latest
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.description=HTTP Server
-            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.description=nodejs-argo tunnel with custom config
+            org.opencontainers.image.licenses=GPL-3.0
           cache-from: type=gha
           cache-to: type=gha,mode=max
